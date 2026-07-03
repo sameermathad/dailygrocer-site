@@ -535,23 +535,34 @@ function sendToWhatsApp(){
   const name = document.getElementById("custName").value.trim();
   const addr = document.getElementById("custAddr").value.trim();
 
+  const divider = "------------------------------";
   let lines = [];
-  lines.push(`*New order — ${STORE.name} ${branch.name}*`);
+  lines.push(`*${STORE.name.toUpperCase()} — ORDER RECEIPT*`);
+  lines.push(`Branch: ${branch.name}`);
+  lines.push(divider);
   lines.push("");
+  lines.push("*ITEMS*");
   let i = 1;
   cart.forEach((q,id) => {
     const p = PRODUCTS.find(x=>x.id===id);
-    lines.push(`${i}. ${p.name} (${p.pack}) × ${q} = ${rupee(p.price*q)}`);
+    lines.push(`${i}. ${p.name} (${p.pack})`);
+    lines.push(`    Qty: ${q} x ${rupee(p.price)} = ${rupee(p.price*q)}`);
     i++;
   });
   lines.push("");
-  lines.push(`Items: ${rupee(t.items)}`);
+  lines.push(divider);
+  lines.push(`Items Total: ${rupee(t.items)}`);
   lines.push(`Delivery: ${t.delivery ? rupee(t.delivery) : "FREE"}`);
-  lines.push(`*Total: ${rupee(t.grand)}* (pay on delivery)`);
+  lines.push(`*Grand Total: ${rupee(t.grand)}*`);
+  lines.push("(Pay on Delivery)");
+  lines.push(divider);
   lines.push("");
+  lines.push("*DELIVERY DETAILS*");
   lines.push(`Slot: ${STORE.slots[activeSlot]}`);
   if(name) lines.push(`Name: ${name}`);
   if(addr) lines.push(`Address: ${addr}`);
+  lines.push("");
+  lines.push(`Thank you for ordering with ${STORE.name}!`);
 
   const url = "https://wa.me/" + branch.phone + "?text=" + encodeURIComponent(lines.join("\n"));
   window.open(url, "_blank");
