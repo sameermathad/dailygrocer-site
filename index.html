@@ -122,6 +122,10 @@
   .r-fields input,.r-fields textarea,.r-fields select{width:100%;padding:10px;border:1.5px solid var(--line);
     border-radius:9px;font-size:.9rem;background:#fff;outline-color:var(--green-leaf)}
   .r-fields textarea{resize:none;height:60px}
+  .r-fields .req{color:#c0392b}
+  .r-fields input.invalid,.r-fields textarea.invalid{border-color:#c0392b}
+  .error-msg{font-size:.72rem;color:#c0392b;font-weight:600;margin-top:4px;display:none}
+  .error-msg.show{display:block}
   .slot-row{display:flex;gap:8px}
   .slot{flex:1;padding:9px 4px;border:1.5px solid var(--line);border-radius:9px;background:#fff;
     font-size:.78rem;font-weight:600;color:var(--ink-soft);text-align:center}
@@ -209,10 +213,12 @@
   <div class="sheet-body">
     <div id="receiptItems"></div>
     <div class="r-fields">
-      <label for="custName">Name</label>
+      <label for="custName">Name <span class="req">*</span></label>
       <input id="custName" placeholder="e.g. Ramesh">
-      <label for="custAddr">Delivery address (flat / street / landmark)</label>
+      <div class="error-msg" id="custNameErr"></div>
+      <label for="custAddr">Delivery address (flat / street / landmark) <span class="req">*</span></label>
       <textarea id="custAddr" placeholder="e.g. 302, Sri Sai Residency, near SBI ATM, Kukatpally"></textarea>
+      <div class="error-msg" id="custAddrErr"></div>
       <label>Delivery slot</label>
       <div class="slot-row" id="slots"></div>
     </div>
@@ -527,10 +533,38 @@ function renderSheet(){
   if(t.count===0) closeSheet();
 }
 
+/* ---- order field validation ---- */
+function setFieldError(inputEl, errEl, message){
+  inputEl.classList.toggle("invalid", !!message);
+  errEl.textContent = message || "";
+  errEl.classList.toggle("show", !!message);
+}
+function validateOrderFields(){
+  const nameEl = document.getElementById("custName");
+  const addrEl = document.getElementById("custAddr");
+  const nameErr = document.getElementById("custNameErr");
+  const addrErr = document.getElementById("custAddrErr");
+  const name = nameEl.value.trim();
+  const addr = addrEl.value.trim();
+  let firstInvalid = null;
+
+  setFieldError(nameEl, nameErr, name ? "" : "Please enter your name.");
+  if(!name) firstInvalid = firstInvalid || nameEl;
+
+  setFieldError(addrEl, addrErr, addr.length >= 8 ? "" : "Please enter a complete delivery address.");
+  if(addr.length < 8) firstInvalid = firstInvalid || addrEl;
+
+  if(firstInvalid){ firstInvalid.focus(); return false; }
+  return true;
+}
+document.getElementById("custName").addEventListener("input", function(){ setFieldError(this, document.getElementById("custNameErr"), ""); });
+document.getElementById("custAddr").addEventListener("input", function(){ setFieldError(this, document.getElementById("custAddrErr"), ""); });
+
 /* ---- WhatsApp handoff: the whole point of the page ---- */
 function sendToWhatsApp(){
   const t = totals();
   if(t.count===0) return;
+  if(!validateOrderFields()) return;
   const branch = STORE.branches[branchSel.value];
   const name = document.getElementById("custName").value.trim();
   const addr = document.getElementById("custAddr").value.trim();
