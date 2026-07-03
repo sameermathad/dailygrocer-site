@@ -536,7 +536,7 @@ function sendToWhatsApp(){
   const addr = document.getElementById("custAddr").value.trim();
 
   let lines = [];
-  lines.push(`🛒 *New order — ${STORE.name} ${branch.name}*`);
+  lines.push(`*New order — ${STORE.name} ${branch.name}*`);
   lines.push("");
   let i = 1;
   cart.forEach((q,id) => {
@@ -549,9 +549,9 @@ function sendToWhatsApp(){
   lines.push(`Delivery: ${t.delivery ? rupee(t.delivery) : "FREE"}`);
   lines.push(`*Total: ${rupee(t.grand)}* (pay on delivery)`);
   lines.push("");
-  lines.push(`🕐 Slot: ${STORE.slots[activeSlot]}`);
-  if(name) lines.push(`👤 ${name}`);
-  if(addr) lines.push(`📍 ${addr}`);
+  lines.push(`Slot: ${STORE.slots[activeSlot]}`);
+  if(name) lines.push(`Name: ${name}`);
+  if(addr) lines.push(`Address: ${addr}`);
 
   const url = "https://wa.me/" + branch.phone + "?text=" + encodeURIComponent(lines.join("\n"));
   window.open(url, "_blank");
