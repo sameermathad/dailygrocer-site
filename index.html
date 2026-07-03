@@ -141,6 +141,10 @@
     padding:14px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:9px;transition:background .15s}
   .wa-btn:active{background:var(--wa-green-dark)}
   .wa-btn svg{flex-shrink:0}
+  .copy-btn{width:100%;background:#fff;color:var(--green-deep);font-weight:700;font-size:.88rem;
+    padding:11px;border-radius:12px;margin-top:8px;border:1.5px solid var(--line);transition:background .15s,border-color .15s}
+  .copy-btn:active{background:var(--bg)}
+  .copy-btn.copied{border-color:var(--green-leaf);color:var(--green-leaf)}
   .foot-hint{text-align:center;font-size:.7rem;color:var(--ink-soft);margin-top:8px}
 
   /* ============ PRODUCT DETAIL SHEET ============ */
@@ -234,6 +238,7 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="#0b3d20"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c.1.2.1.4 0 .6l-.4.6-.5.5c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.4 0 .1 0 .7-.2 1.3z"/></svg>
       Send order on WhatsApp
     </button>
+    <button class="copy-btn" id="copyBtn" onclick="copyOrder()">Copy order</button>
     <div class="foot-hint">Opens WhatsApp with your order typed out — just press send. Pay by UPI or cash on delivery.</div>
   </div>
 </div>
@@ -266,10 +271,10 @@ const STORE = {
   // One WhatsApp number per branch (country code, no + or spaces).
   // Replace these placeholders with the real numbers.
   branches: [
-    { name: "Kukatpally",   phone: "919000000001" },
-    { name: "Miyapur",      phone: "919000000002" },
-    { name: "KPHB",         phone: "919000000003" },
-    { name: "Nizampet",     phone: "919000000004" },
+    { name: "Kukatpally",   phone: "919121921469" },
+    { name: "Miyapur",      phone: "919121921469" },
+    { name: "KPHB",         phone: "919121921469" },
+    { name: "Nizampet",     phone: "919121921469" },
   ],
   deliveryFee: 20,          // ₹ flat fee
   freeDeliveryAbove: 499,   // ₹ threshold for free delivery
@@ -560,11 +565,9 @@ function validateOrderFields(){
 document.getElementById("custName").addEventListener("input", function(){ setFieldError(this, document.getElementById("custNameErr"), ""); });
 document.getElementById("custAddr").addEventListener("input", function(){ setFieldError(this, document.getElementById("custAddrErr"), ""); });
 
-/* ---- WhatsApp handoff: the whole point of the page ---- */
-function sendToWhatsApp(){
+/* ---- order message (shared by WhatsApp send + copy) ---- */
+function buildOrderMessage(){
   const t = totals();
-  if(t.count===0) return;
-  if(!validateOrderFields()) return;
   const branch = STORE.branches[branchSel.value];
   const name = document.getElementById("custName").value.trim();
   const addr = document.getElementById("custAddr").value.trim();
@@ -597,9 +600,29 @@ function sendToWhatsApp(){
   if(addr) lines.push(`Address: ${addr}`);
   lines.push("");
   lines.push(`Thank you for ordering with ${STORE.name}!`);
+  return lines.join("\n");
+}
 
-  const url = "https://wa.me/" + branch.phone + "?text=" + encodeURIComponent(lines.join("\n"));
+function sendToWhatsApp(){
+  const t = totals();
+  if(t.count===0) return;
+  if(!validateOrderFields()) return;
+  const branch = STORE.branches[branchSel.value];
+  const url = "https://wa.me/" + branch.phone + "?text=" + encodeURIComponent(buildOrderMessage());
   window.open(url, "_blank");
+}
+
+function copyOrder(){
+  const t = totals();
+  if(t.count===0) return;
+  if(!validateOrderFields()) return;
+  const btn = document.getElementById("copyBtn");
+  navigator.clipboard.writeText(buildOrderMessage()).then(() => {
+    const original = btn.textContent;
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 1800);
+  });
 }
 
 /* ---- search ---- */
