@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>DailyGrocer — Order on WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============ DESIGN TOKENS ============ */
+  :root{
+    --green-deep:#14532d;      /* header, brand */
+    --green-leaf:#1a7a3f;      /* accents */
+    --wa-green:#25d366;        /* WhatsApp CTA — familiar */
+    --wa-green-dark:#1eb355;
+    --turmeric:#e8a020;        /* highlights, badges */
+    --paper:#ffffff;
+    --bg:#f4f5f2;
+    --ink:#1c2420;
+    --ink-soft:#5c6660;
+    --line:#e3e6e0;
+    --receipt:#fffdf6;
+    --radius:14px;
+    --shadow:0 1px 3px rgba(20,40,25,.08);
+    --font-display:"Baloo 2", system-ui, sans-serif;
+    --font-body:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{font-size:16px}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);padding-bottom:110px}
+  button{font-family:inherit;border:none;cursor:pointer;background:none}
+  input,select{font-family:inherit}
+
+  /* ============ HEADER ============ */
+  header{background:var(--green-deep);color:#fff;padding:14px 16px 12px;position:sticky;top:0;z-index:40}
+  .brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .brand{font-family:var(--font-display);font-weight:800;font-size:1.45rem;letter-spacing:.2px;line-height:1}
+  .brand span{color:var(--turmeric)}
+  .branch-pick{display:flex;align-items:center;gap:6px;font-size:.78rem;opacity:.95}
+  .branch-pick select{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);
+    border-radius:8px;padding:6px 8px;font-size:.8rem;max-width:150px}
+  .branch-pick select option{color:var(--ink)}
+  .tagline{font-size:.72rem;opacity:.75;margin-top:4px}
+
+  .search-wrap{margin-top:12px;position:relative}
+  .search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45}
+  #search{width:100%;padding:11px 12px 11px 38px;border-radius:10px;border:none;font-size:.95rem;
+    background:#fff;color:var(--ink);outline:none}
+
+  /* ============ CATEGORY CHIPS ============ */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;scrollbar-width:none;background:var(--bg);
+    position:sticky;top:118px;z-index:30}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;padding:8px 15px;border-radius:20px;background:#fff;border:1.5px solid var(--line);
+    font-size:.85rem;font-weight:600;color:var(--ink-soft);white-space:nowrap;transition:all .15s}
+  .chip.active{background:var(--green-leaf);border-color:var(--green-leaf);color:#fff}
+
+  /* ============ PRODUCT GRID ============ */
+  .section-label{padding:14px 16px 6px;font-size:.72rem;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:8px 16px 16px}
+  @media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:820px){.grid{grid-template-columns:repeat(4,1fr);max-width:960px;margin:0 auto}
+    header .head-inner,.chips{max-width:960px;margin-left:auto;margin-right:auto}}
+
+  .card{background:var(--paper);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:6px;border:1px solid transparent;transition:border-color .15s}
+  .card.in-cart{border-color:var(--green-leaf)}
+  .emoji{font-size:1.9rem;line-height:1}
+  .p-name{font-size:.86rem;font-weight:600;line-height:1.25;min-height:2.2em}
+  .p-pack{font-size:.74rem;color:var(--ink-soft)}
+  .p-row{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:4px}
+  .p-price{font-weight:700;font-size:.95rem}
+  .p-price small{font-weight:500;color:var(--ink-soft);font-size:.7rem;text-decoration:line-through;margin-left:4px}
+
+  .add-btn{background:var(--green-leaf);color:#fff;font-weight:700;font-size:.8rem;
+    padding:7px 16px;border-radius:9px;transition:transform .1s}
+  .add-btn:active{transform:scale(.94)}
+  .stepper{display:flex;align-items:center;gap:0;background:var(--green-leaf);border-radius:9px;overflow:hidden}
+  .stepper button{color:#fff;font-size:1.05rem;font-weight:700;width:32px;height:32px;display:flex;
+    align-items:center;justify-content:center}
+  .stepper .qty{color:#fff;font-weight:700;font-size:.88rem;min-width:24px;text-align:center}
+
+  .empty-msg{padding:40px 20px;text-align:center;color:var(--ink-soft);font-size:.9rem}
+
+  /* ============ STICKY CART BAR ============ */
+  .cart-bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    z-index:50;pointer-events:none}
+  .cart-bar-inner{max-width:560px;margin:0 auto;pointer-events:auto;background:var(--green-deep);color:#fff;
+    border-radius:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    box-shadow:0 6px 24px rgba(20,60,30,.35);transform:translateY(140%);transition:transform .25s ease}
+  .cart-bar.show .cart-bar-inner{transform:translateY(0)}
+  .cart-info{font-size:.8rem;line-height:1.3}
+  .cart-info b{font-size:1rem}
+  .view-cart-btn{background:var(--wa-green);color:#063;color:#0b3d20;font-weight:800;font-size:.9rem;
+    padding:11px 18px;border-radius:11px;white-space:nowrap}
+
+  /* ============ CART SHEET (receipt style) ============ */
+  .overlay{position:fixed;inset:0;background:rgba(15,25,18,.5);z-index:60;opacity:0;pointer-events:none;transition:opacity .2s}
+  .overlay.show{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--receipt);
+    border-radius:20px 20px 0 0;max-height:88vh;display:flex;flex-direction:column;
+    transform:translateY(105%);transition:transform .28s ease;max-width:560px;margin:0 auto}
+  .sheet.show{transform:translateY(0)}
+  .sheet-head{padding:16px 18px 10px;border-bottom:2px dashed var(--line);display:flex;justify-content:space-between;align-items:flex-start}
+  .sheet-title{font-family:var(--font-display);font-weight:800;font-size:1.15rem;color:var(--green-deep)}
+  .sheet-sub{font-size:.74rem;color:var(--ink-soft);margin-top:2px}
+  .close-x{font-size:1.3rem;color:var(--ink-soft);padding:4px 8px}
+  .sheet-body{overflow-y:auto;padding:6px 18px;flex:1}
+  .r-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px dotted var(--line)}
+  .r-item:last-child{border-bottom:none}
+  .r-name{flex:1;min-width:0}
+  .r-name .n{font-size:.88rem;font-weight:600}
+  .r-name .p{font-size:.73rem;color:var(--ink-soft)}
+  .r-stepper{display:flex;align-items:center;border:1.5px solid var(--green-leaf);border-radius:8px;overflow:hidden}
+  .r-stepper button{color:var(--green-leaf);width:28px;height:28px;font-weight:800;font-size:1rem}
+  .r-stepper .qty{font-weight:700;font-size:.85rem;min-width:22px;text-align:center;color:var(--green-deep)}
+  .r-amt{font-weight:700;font-size:.88rem;min-width:58px;text-align:right}
+
+  .r-fields{padding:10px 0 4px;border-top:2px dashed var(--line);margin-top:6px}
+  .r-fields label{font-size:.74rem;font-weight:700;color:var(--ink-soft);display:block;margin:10px 0 4px}
+  .r-fields input,.r-fields textarea,.r-fields select{width:100%;padding:10px;border:1.5px solid var(--line);
+    border-radius:9px;font-size:.9rem;background:#fff;outline-color:var(--green-leaf)}
+  .r-fields textarea{resize:none;height:60px}
+  .slot-row{display:flex;gap:8px}
+  .slot{flex:1;padding:9px 4px;border:1.5px solid var(--line);border-radius:9px;background:#fff;
+    font-size:.78rem;font-weight:600;color:var(--ink-soft);text-align:center}
+  .slot.active{border-color:var(--turmeric);background:#fdf3df;color:#7a5510}
+
+  .sheet-foot{padding:12px 18px calc(14px + env(safe-area-inset-bottom));border-top:2px dashed var(--line);background:var(--receipt)}
+  .totals{font-size:.84rem;color:var(--ink-soft);display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+  .totals .row{display:flex;justify-content:space-between}
+  .totals .grand{font-size:1.05rem;font-weight:800;color:var(--ink)}
+  .free-note{font-size:.75rem;color:var(--green-leaf);font-weight:700}
+  .almost-note{font-size:.75rem;color:#a06b00;font-weight:600}
+  .wa-btn{width:100%;background:var(--wa-green);color:#0b3d20;font-weight:800;font-size:1rem;
+    padding:14px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:9px;transition:background .15s}
+  .wa-btn:active{background:var(--wa-green-dark)}
+  .wa-btn svg{flex-shrink:0}
+  .foot-hint{text-align:center;font-size:.7rem;color:var(--ink-soft);margin-top:8px}
+
+  /* ============ PRODUCT DETAIL SHEET ============ */
+  .detail-sheet{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--paper);
+    border-radius:20px 20px 0 0;transform:translateY(105%);transition:transform .28s ease;
+    max-width:560px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom)}
+  .detail-sheet.show{transform:translateY(0)}
+  .detail-top{display:flex;justify-content:flex-end;padding:10px 12px 0}
+  .detail-hero{text-align:center;padding:4px 24px 0}
+  .detail-hero .big-emoji{font-size:4.2rem;line-height:1.1;display:block}
+  .detail-body{padding:12px 22px 20px}
+  .d-brand{font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--turmeric)}
+  .d-name{font-family:var(--font-display);font-weight:700;font-size:1.35rem;color:var(--green-deep);line-height:1.2;margin-top:2px}
+  .d-pack{font-size:.85rem;color:var(--ink-soft);margin-top:2px}
+  .d-desc{font-size:.87rem;line-height:1.55;color:var(--ink);margin-top:12px}
+  .d-price-row{display:flex;align-items:baseline;gap:8px;margin-top:14px}
+  .d-price{font-weight:800;font-size:1.4rem}
+  .d-mrp{font-size:.85rem;color:var(--ink-soft);text-decoration:line-through}
+  .d-save{font-size:.75rem;font-weight:700;color:var(--green-leaf);background:#e7f5ec;
+    padding:3px 9px;border-radius:12px}
+  .d-actions{margin-top:16px}
+  .d-actions .add-btn{width:100%;padding:14px;font-size:1rem;border-radius:12px}
+  .d-actions .stepper{width:100%;justify-content:space-between;border-radius:12px}
+  .d-actions .stepper button{width:52px;height:48px;font-size:1.3rem}
+  .d-actions .stepper .qty{font-size:1.05rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="brand-row">
+      <div>
+        <div class="brand">Daily<span>Grocer</span></div>
+        <div class="tagline">Your neighbourhood store, since 2009</div>
+      </div>
+      <div class="branch-pick">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <select id="branch" aria-label="Choose branch"></select>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="search" type="search" placeholder="Search atta, milk, oil…" autocomplete="off">
+    </div>
+  </div>
+</header>
+
+<nav class="chips" id="chips" aria-label="Categories"></nav>
+<main id="catalog"></main>
+
+<!-- sticky cart bar -->
+<div class="cart-bar" id="cartBar">
+  <div class="cart-bar-inner">
+    <div class="cart-info"><b id="barTotal">₹0</b><br><span id="barCount">0 items</span></div>
+    <button class="view-cart-btn" onclick="openSheet()">View order →</button>
+  </div>
+</div>
+
+<!-- cart sheet -->
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Your order">
+  <div class="sheet-head">
+    <div>
+      <div class="sheet-title">Your order</div>
+      <div class="sheet-sub" id="sheetBranch"></div>
+    </div>
+    <button class="close-x" onclick="closeSheet()" aria-label="Close">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div id="receiptItems"></div>
+    <div class="r-fields">
+      <label for="custName">Name</label>
+      <input id="custName" placeholder="e.g. Ramesh">
+      <label for="custAddr">Delivery address (flat / street / landmark)</label>
+      <textarea id="custAddr" placeholder="e.g. 302, Sri Sai Residency, near SBI ATM, Kukatpally"></textarea>
+      <label>Delivery slot</label>
+      <div class="slot-row" id="slots"></div>
+    </div>
+  </div>
+  <div class="sheet-foot">
+    <div class="totals">
+      <div class="row"><span>Items total</span><span id="tItems">₹0</span></div>
+      <div class="row"><span>Delivery</span><span id="tDelivery">₹0</span></div>
+      <div class="row grand"><span>To pay on delivery</span><span id="tGrand">₹0</span></div>
+      <div id="freeNote"></div>
+    </div>
+    <button class="wa-btn" onclick="sendToWhatsApp()">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="#0b3d20"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c.1.2.1.4 0 .6l-.4.6-.5.5c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.4 0 .1 0 .7-.2 1.3z"/></svg>
+      Send order on WhatsApp
+    </button>
+    <div class="foot-hint">Opens WhatsApp with your order typed out — just press send. Pay by UPI or cash on delivery.</div>
+  </div>
+</div>
+
+<!-- product detail sheet -->
+<div class="detail-sheet" id="detailSheet" role="dialog" aria-label="Product details">
+  <div class="detail-top"><button class="close-x" onclick="closeDetail()" aria-label="Close">✕</button></div>
+  <div class="detail-hero"><span class="big-emoji" id="dEmoji"></span></div>
+  <div class="detail-body">
+    <div class="d-brand" id="dBrand"></div>
+    <div class="d-name" id="dName"></div>
+    <div class="d-pack" id="dPack"></div>
+    <div class="d-desc" id="dDesc"></div>
+    <div class="d-price-row">
+      <span class="d-price" id="dPrice"></span>
+      <span class="d-mrp" id="dMrp"></span>
+      <span class="d-save" id="dSave"></span>
+    </div>
+    <div class="d-actions" id="dActions"></div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   STORE CONFIGURATION — everything the shop staff edits lives here.
+   No other part of the file needs touching for day-to-day changes.
+   ================================================================ */
+const STORE = {
+  name: "DailyGrocer",
+  // One WhatsApp number per branch (country code, no + or spaces).
+  // Replace these placeholders with the real numbers.
+  branches: [
+    { name: "Kukatpally",   phone: "919000000001" },
+    { name: "Miyapur",      phone: "919000000002" },
+    { name: "KPHB",         phone: "919000000003" },
+    { name: "Nizampet",     phone: "919000000004" },
+  ],
+  deliveryFee: 20,          // ₹ flat fee
+  freeDeliveryAbove: 499,   // ₹ threshold for free delivery
+  slots: ["ASAP (1–2 hrs)", "Today evening", "Tomorrow morning"],
+};
+
+/* Catalog: emoji keeps it image-free (loads instantly on any phone).
+   mrp is optional — when present the card shows a strike-through price. */
+const PRODUCTS = [
+  // Dairy — the anchor category, listed first
+  { id:1,  cat:"Dairy",        emoji:"🥛", name:"Toned Milk",              pack:"500 ml pouch",  price:28 },
+  { id:2,  cat:"Dairy",        emoji:"🥛", name:"Full Cream Milk",         pack:"500 ml pouch",  price:35 },
+  { id:3,  cat:"Dairy",        emoji:"🍶", name:"Fresh Curd",              pack:"400 g cup",     price:40, mrp:45,
+    brand:"Heritage", desc:"Thick set curd, delivered to our stores every morning. Great for daily meals, raita and lassi. Keep refrigerated." },
+  { id:4,  cat:"Dairy",        emoji:"🧈", name:"Butter",                  pack:"100 g",         price:60 },
+  { id:5,  cat:"Dairy",        emoji:"🧀", name:"Paneer",                  pack:"200 g",         price:95, mrp:105 },
+  { id:6,  cat:"Dairy",        emoji:"🥛", name:"Buttermilk",              pack:"200 ml ×5",     price:50 },
+  { id:7,  cat:"Dairy",        emoji:"🍮", name:"Ghee",                    pack:"500 ml jar",    price:330, mrp:360,
+    brand:"Vijaya", desc:"Pure cow ghee with rich aroma — the brand our regulars ask for by name. Also available in 1 L tin, ask on WhatsApp." },
+  { id:8,  cat:"Dairy",        emoji:"🥚", name:"Eggs",                    pack:"tray of 12",    price:84 },
+
+  // Staples — the monthly-basket heart of the store
+  { id:9,  cat:"Staples",      emoji:"🌾", name:"Whole Wheat Atta",        pack:"5 kg bag",      price:245, mrp:270,
+    brand:"Aashirvaad", desc:"100% whole wheat chakki atta. Our best monthly-basket price — cheaper than the apps on the 5 kg pack." },
+  { id:10, cat:"Staples",      emoji:"🍚", name:"Sona Masoori Rice",       pack:"10 kg bag",     price:620, mrp:680,
+    brand:"HMT Kolam", desc:"Aged sona masoori, the everyday rice for most Hyderabad homes. 25 kg bags available at further discount — ask on WhatsApp." },
+  { id:11, cat:"Staples",      emoji:"🍚", name:"Basmati Rice",            pack:"1 kg",          price:145 },
+  { id:12, cat:"Staples",      emoji:"🫘", name:"Toor Dal",                pack:"1 kg",          price:160, mrp:175 },
+  { id:13, cat:"Staples",      emoji:"🫘", name:"Moong Dal",               pack:"500 g",         price:75 },
+  { id:14, cat:"Staples",      emoji:"🫗", name:"Sunflower Oil",           pack:"1 L pouch",     price:135, mrp:150 },
+  { id:15, cat:"Staples",      emoji:"🫗", name:"Groundnut Oil",           pack:"1 L",           price:185 },
+  { id:16, cat:"Staples",      emoji:"🧂", name:"Iodised Salt",            pack:"1 kg",          price:24 },
+  { id:17, cat:"Staples",      emoji:"🍬", name:"Sugar",                   pack:"1 kg",          price:46 },
+  { id:18, cat:"Staples",      emoji:"🌶️", name:"Red Chilli Powder",       pack:"200 g",         price:78 },
+  { id:19, cat:"Staples",      emoji:"🟡", name:"Turmeric Powder",         pack:"100 g",         price:38 },
+  { id:20, cat:"Staples",      emoji:"🫖", name:"Tea Powder",              pack:"500 g",         price:230, mrp:250 },
+  { id:21, cat:"Staples",      emoji:"☕", name:"Filter Coffee Powder",    pack:"200 g",         price:120 },
+
+  // Snacks & packaged food
+  { id:22, cat:"Snacks",       emoji:"🍪", name:"Marie Biscuits",          pack:"family pack",   price:35 },
+  { id:23, cat:"Snacks",       emoji:"🍜", name:"Instant Noodles",         pack:"pack of 4",     price:56 },
+  { id:24, cat:"Snacks",       emoji:"🥔", name:"Potato Chips",            pack:"party pack",    price:50 },
+  { id:25, cat:"Snacks",       emoji:"🥜", name:"Mixture / Namkeen",       pack:"400 g",         price:90 },
+  { id:26, cat:"Snacks",       emoji:"🍞", name:"Bread",                   pack:"400 g loaf",    price:45 },
+  { id:27, cat:"Snacks",       emoji:"🍯", name:"Peanut Butter",           pack:"340 g jar",     price:140, mrp:160 },
+  { id:28, cat:"Snacks",       emoji:"🥣", name:"Poha (Flattened Rice)",   pack:"500 g",         price:42 },
+  { id:29, cat:"Snacks",       emoji:"🌽", name:"Cornflakes",              pack:"475 g",         price:165 },
+
+  // Household
+  { id:30, cat:"Household",    emoji:"🧺", name:"Detergent Powder",        pack:"2 kg",          price:220, mrp:245 },
+  { id:31, cat:"Household",    emoji:"🧼", name:"Dishwash Bar",            pack:"pack of 3",     price:60 },
+  { id:32, cat:"Household",    emoji:"🧴", name:"Floor Cleaner",           pack:"1 L",           price:110 },
+  { id:33, cat:"Household",    emoji:"🧻", name:"Garbage Bags",            pack:"30 pcs, medium",price:75 },
+  { id:34, cat:"Household",    emoji:"🦟", name:"Mosquito Repellent Refill",pack:"twin pack",    price:145 },
+
+  // Personal care
+  { id:35, cat:"Personal Care",emoji:"🧴", name:"Shampoo",                 pack:"340 ml",        price:210, mrp:235 },
+  { id:36, cat:"Personal Care",emoji:"🧼", name:"Bathing Soap",            pack:"pack of 4",     price:132 },
+  { id:37, cat:"Personal Care",emoji:"🪥", name:"Toothpaste",              pack:"200 g",         price:98 },
+  { id:38, cat:"Personal Care",emoji:"🧴", name:"Hair Oil",                pack:"300 ml",        price:150, mrp:170 },
+];
+
+/* ================================================================
+   APP LOGIC — no edits needed below this line
+   ================================================================ */
+const cart = new Map();           // id -> qty (in-memory)
+let activeCat = "All";
+let activeSlot = 0;
+let query = "";
+
+const CATS = ["All", ...new Set(PRODUCTS.map(p => p.cat))];
+const rupee = n => "₹" + n.toLocaleString("en-IN");
+
+/* ---- init branch picker ---- */
+const branchSel = document.getElementById("branch");
+STORE.branches.forEach((b,i) => {
+  const o = document.createElement("option");
+  o.value = i; o.textContent = b.name;
+  branchSel.appendChild(o);
+});
+
+/* ---- init slots ---- */
+const slotsEl = document.getElementById("slots");
+STORE.slots.forEach((s,i) => {
+  const b = document.createElement("button");
+  b.className = "slot" + (i===0 ? " active" : "");
+  b.textContent = s;
+  b.onclick = () => { activeSlot = i;
+    [...slotsEl.children].forEach((c,j)=>c.classList.toggle("active", j===i)); };
+  slotsEl.appendChild(b);
+});
+
+/* ---- chips ---- */
+const chipsEl = document.getElementById("chips");
+function renderChips(){
+  chipsEl.innerHTML = "";
+  CATS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "chip" + (c===activeCat ? " active" : "");
+    b.textContent = c;
+    b.onclick = () => { activeCat = c; renderChips(); renderCatalog(); };
+    chipsEl.appendChild(b);
+  });
+}
+
+/* ---- catalog ---- */
+const catalogEl = document.getElementById("catalog");
+function visibleProducts(){
+  return PRODUCTS.filter(p =>
+    (activeCat==="All" || p.cat===activeCat) &&
+    (query==="" || (p.name+" "+p.cat).toLowerCase().includes(query))
+  );
+}
+function renderCatalog(){
+  const items = visibleProducts();
+  catalogEl.innerHTML = "";
+  if(!items.length){
+    catalogEl.innerHTML = `<div class="empty-msg">Nothing matches "<b>${query}</b>".<br>Can't find something? Add it as a note in WhatsApp after ordering — we'll get it.</div>`;
+    return;
+  }
+  let lastCat = null;
+  let grid = null;
+  items.forEach(p => {
+    if(activeCat==="All" && p.cat!==lastCat){
+      lastCat = p.cat;
+      const lab = document.createElement("div");
+      lab.className = "section-label"; lab.textContent = p.cat;
+      catalogEl.appendChild(lab);
+      grid = document.createElement("div"); grid.className="grid";
+      catalogEl.appendChild(grid);
+    } else if(activeCat!=="All" && !grid){
+      grid = document.createElement("div"); grid.className="grid";
+      catalogEl.appendChild(grid);
+    }
+    grid.appendChild(card(p));
+  });
+}
+function card(p){
+  const qty = cart.get(p.id) || 0;
+  const el = document.createElement("div");
+  el.className = "card" + (qty ? " in-cart" : "");
+  el.innerHTML = `
+    <div class="emoji">${p.emoji}</div>
+    <div class="p-name">${p.name}</div>
+    <div class="p-pack">${p.pack}</div>
+    <div class="p-row">
+      <div class="p-price">${rupee(p.price)}${p.mrp ? `<small>${rupee(p.mrp)}</small>` : ""}</div>
+      <div class="ctrl"></div>
+    </div>`;
+  el.querySelector(".ctrl").appendChild(qtyControl(p));
+  el.onclick = e => { if(e.target.closest("button")) return; openDetail(p.id); };
+  return el;
+}
+function qtyControl(p){
+  const qty = cart.get(p.id) || 0;
+  if(!qty){
+    const b = document.createElement("button");
+    b.className = "add-btn"; b.textContent = "ADD";
+    b.onclick = () => setQty(p.id, 1);
+    return b;
+  }
+  const s = document.createElement("div");
+  s.className = "stepper";
+  s.innerHTML = `<button aria-label="less">−</button><span class="qty">${qty}</span><button aria-label="more">+</button>`;
+  const [minus, plus] = s.querySelectorAll("button");
+  minus.onclick = () => setQty(p.id, qty-1);
+  plus.onclick  = () => setQty(p.id, qty+1);
+  return s;
+}
+function setQty(id, q){
+  if(q<=0) cart.delete(id); else cart.set(id, q);
+  renderCatalog(); renderCartBar();
+  if(document.getElementById("sheet").classList.contains("show")) renderSheet();
+  if(detailId===id && document.getElementById("detailSheet").classList.contains("show")) renderDetail();
+}
+
+/* ---- product detail sheet ---- */
+let detailId = null;
+function openDetail(id){
+  detailId = id; renderDetail();
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("overlay").onclick = closeDetail;
+  document.getElementById("detailSheet").classList.add("show");
+}
+function closeDetail(){
+  document.getElementById("detailSheet").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+  document.getElementById("overlay").onclick = closeSheet;
+}
+function renderDetail(){
+  const p = PRODUCTS.find(x=>x.id===detailId);
+  if(!p) return;
+  document.getElementById("dEmoji").textContent = p.emoji;
+  document.getElementById("dBrand").textContent = p.brand || "Store-selected brand";
+  document.getElementById("dName").textContent = p.name;
+  document.getElementById("dPack").textContent = p.pack + " · " + p.cat;
+  document.getElementById("dDesc").textContent = p.desc ||
+    "Stocked fresh at all DailyGrocer branches. Ask us on WhatsApp if you prefer a different brand or pack size — we usually have it.";
+  document.getElementById("dPrice").textContent = rupee(p.price);
+  document.getElementById("dMrp").textContent = p.mrp ? rupee(p.mrp) : "";
+  document.getElementById("dSave").textContent = p.mrp ? "You save " + rupee(p.mrp - p.price) : "";
+  document.getElementById("dSave").style.display = p.mrp ? "" : "none";
+  const act = document.getElementById("dActions");
+  act.innerHTML = "";
+  act.appendChild(qtyControl(p));
+}
+
+/* ---- totals ---- */
+function totals(){
+  let items = 0, count = 0;
+  cart.forEach((q,id) => { const p = PRODUCTS.find(x=>x.id===id); items += p.price*q; count += q; });
+  const delivery = (items===0 || items>=STORE.freeDeliveryAbove) ? 0 : STORE.deliveryFee;
+  return { items, count, delivery, grand: items+delivery };
+}
+
+/* ---- sticky bar ---- */
+function renderCartBar(){
+  const t = totals();
+  const bar = document.getElementById("cartBar");
+  bar.classList.toggle("show", t.count>0);
+  document.getElementById("barTotal").textContent = rupee(t.items);
+  document.getElementById("barCount").textContent = t.count + (t.count===1?" item":" items");
+}
+
+/* ---- sheet ---- */
+function openSheet(){ renderSheet();
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("sheet").classList.add("show"); }
+function closeSheet(){
+  document.getElementById("overlay").classList.remove("show");
+  document.getElementById("sheet").classList.remove("show"); }
+
+function renderSheet(){
+  const wrap = document.getElementById("receiptItems");
+  wrap.innerHTML = "";
+  document.getElementById("sheetBranch").textContent =
+    STORE.branches[branchSel.value].name + " branch · pay on delivery";
+  cart.forEach((q,id) => {
+    const p = PRODUCTS.find(x=>x.id===id);
+    const row = document.createElement("div");
+    row.className = "r-item";
+    row.innerHTML = `
+      <div class="r-name"><div class="n">${p.emoji} ${p.name}</div><div class="p">${p.pack} · ${rupee(p.price)}</div></div>
+      <div class="r-stepper"><button>−</button><span class="qty">${q}</span><button>+</button></div>
+      <div class="r-amt">${rupee(p.price*q)}</div>`;
+    const [minus, plus] = row.querySelectorAll("button");
+    minus.onclick = () => setQty(id, q-1);
+    plus.onclick  = () => setQty(id, q+1);
+    wrap.appendChild(row);
+  });
+  const t = totals();
+  document.getElementById("tItems").textContent = rupee(t.items);
+  document.getElementById("tDelivery").textContent = t.delivery ? rupee(t.delivery) : "FREE";
+  document.getElementById("tGrand").textContent = rupee(t.grand);
+  const note = document.getElementById("freeNote");
+  if(t.items>0 && t.items < STORE.freeDeliveryAbove)
+    note.innerHTML = `<span class="almost-note">Add ${rupee(STORE.freeDeliveryAbove - t.items)} more for free delivery</span>`;
+  else if(t.items >= STORE.freeDeliveryAbove)
+    note.innerHTML = `<span class="free-note">✓ Free delivery unlocked</span>`;
+  else note.innerHTML = "";
+  if(t.count===0) closeSheet();
+}
+
+/* ---- WhatsApp handoff: the whole point of the page ---- */
+function sendToWhatsApp(){
+  const t = totals();
+  if(t.count===0) return;
+  const branch = STORE.branches[branchSel.value];
+  const name = document.getElementById("custName").value.trim();
+  const addr = document.getElementById("custAddr").value.trim();
+
+  let lines = [];
+  lines.push(`🛒 *New order — ${STORE.name} ${branch.name}*`);
+  lines.push("");
+  let i = 1;
+  cart.forEach((q,id) => {
+    const p = PRODUCTS.find(x=>x.id===id);
+    lines.push(`${i}. ${p.name} (${p.pack}) × ${q} = ${rupee(p.price*q)}`);
+    i++;
+  });
+  lines.push("");
+  lines.push(`Items: ${rupee(t.items)}`);
+  lines.push(`Delivery: ${t.delivery ? rupee(t.delivery) : "FREE"}`);
+  lines.push(`*Total: ${rupee(t.grand)}* (pay on delivery)`);
+  lines.push("");
+  lines.push(`🕐 Slot: ${STORE.slots[activeSlot]}`);
+  if(name) lines.push(`👤 ${name}`);
+  if(addr) lines.push(`📍 ${addr}`);
+
+  const url = "https://wa.me/" + branch.phone + "?text=" + encodeURIComponent(lines.join("\n"));
+  window.open(url, "_blank");
+}
+
+/* ---- search ---- */
+document.getElementById("search").addEventListener("input", e => {
+  query = e.target.value.trim().toLowerCase();
+  renderCatalog();
+});
+
+/* ---- boot ---- */
+renderChips();
+renderCatalog();
+renderCartBar();
+</script>
+</body>
+</html>
