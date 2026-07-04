@@ -47,6 +47,18 @@
   #search{width:100%;padding:11px 12px 11px 38px;border-radius:10px;border:none;font-size:.95rem;
     background:#fff;color:var(--ink);outline:none}
 
+  /* ============ MONTHLY BASKET BANNER ============ */
+  .basket-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 16px 0;
+    background:#fff;border:1.5px solid var(--turmeric);border-radius:12px;padding:10px 14px}
+  .basket-text strong{font-size:.88rem;color:var(--green-deep);display:block}
+  .basket-text span{font-size:.72rem;color:var(--ink-soft)}
+  .basket-btn{background:var(--turmeric);color:#fff;font-weight:800;font-size:.8rem;padding:9px 16px;
+    border-radius:9px;white-space:nowrap;flex-shrink:0}
+  .basket-btn:active{transform:scale(.96)}
+  .basket-notice{font-size:.74rem;color:#a06b00;font-weight:600;margin:6px 16px 0;display:none}
+  .basket-notice.show{display:block}
+  @media(min-width:820px){.basket-banner{max-width:960px;margin-left:auto;margin-right:auto}}
+
   /* ============ CATEGORY CHIPS ============ */
   .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;scrollbar-width:none;background:var(--bg);
     position:sticky;top:118px;z-index:30}
@@ -66,6 +78,9 @@
   .card{background:var(--paper);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);
     display:flex;flex-direction:column;gap:6px;border:1px solid transparent;transition:border-color .15s}
   .card.in-cart{border-color:var(--green-leaf)}
+  .card.out-of-stock{opacity:.6}
+  .stock-badge{font-size:.66rem;font-weight:700;color:#a06b00;background:#fdf3df;
+    padding:3px 7px;border-radius:6px;width:fit-content}
   .emoji{font-size:1.9rem;line-height:1}
   .p-name{font-size:.86rem;font-weight:600;line-height:1.25;min-height:2.2em}
   .p-pack{font-size:.74rem;color:var(--ink-soft)}
@@ -76,9 +91,12 @@
   .add-btn{background:var(--green-leaf);color:#fff;font-weight:700;font-size:.8rem;
     padding:7px 16px;border-radius:9px;transition:transform .1s}
   .add-btn:active{transform:scale(.94)}
+  .add-btn.disabled{background:var(--line);color:var(--ink-soft);cursor:not-allowed}
+  .add-btn.disabled:active{transform:none}
   .stepper{display:flex;align-items:center;gap:0;background:var(--green-leaf);border-radius:9px;overflow:hidden}
   .stepper button{color:#fff;font-size:1.05rem;font-weight:700;width:32px;height:32px;display:flex;
     align-items:center;justify-content:center}
+  .stepper button:disabled{opacity:.4;cursor:not-allowed}
   .stepper .qty{color:#fff;font-weight:700;font-size:.88rem;min-width:24px;text-align:center}
 
   .empty-msg{padding:40px 20px;text-align:center;color:var(--ink-soft);font-size:.9rem}
@@ -131,12 +149,20 @@
     font-size:.78rem;font-weight:600;color:var(--ink-soft);text-align:center}
   .slot.active{border-color:var(--turmeric);background:#fdf3df;color:#7a5510}
 
+  .sub-row{display:flex;flex-direction:column;gap:6px}
+  .sub-opt{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1.5px solid var(--line);
+    border-radius:9px;background:#fff;font-size:.82rem;font-weight:600;color:var(--ink-soft);text-align:left}
+  .sub-opt::before{content:"";width:14px;height:14px;border-radius:50%;border:2px solid var(--line);flex-shrink:0}
+  .sub-opt.active{border-color:var(--green-leaf);background:#e7f5ec;color:var(--green-deep)}
+  .sub-opt.active::before{border-color:var(--green-leaf);background:var(--green-leaf);box-shadow:inset 0 0 0 3px #fff}
+
   .sheet-foot{padding:12px 18px calc(14px + env(safe-area-inset-bottom));border-top:2px dashed var(--line);background:var(--receipt)}
   .totals{font-size:.84rem;color:var(--ink-soft);display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
   .totals .row{display:flex;justify-content:space-between}
   .totals .grand{font-size:1.05rem;font-weight:800;color:var(--ink)}
   .free-note{font-size:.75rem;color:var(--green-leaf);font-weight:700}
   .almost-note{font-size:.75rem;color:#a06b00;font-weight:600}
+  .sla-note{font-size:.72rem;color:var(--ink-soft);text-align:center;margin-bottom:8px;font-weight:600}
   .wa-btn{width:100%;background:var(--wa-green);color:#0b3d20;font-weight:800;font-size:1rem;
     padding:14px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:9px;transition:background .15s}
   .wa-btn:active{background:var(--wa-green-dark)}
@@ -181,7 +207,7 @@
         <div class="brand">Daily<span>Grocer</span></div>
         <div class="tagline">Your neighbourhood store, since 2009</div>
       </div>
-      <div class="branch-pick">
+      <div class="branch-pick" id="branchPick">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
         <select id="branch" aria-label="Choose branch"></select>
       </div>
@@ -192,6 +218,12 @@
     </div>
   </div>
 </header>
+
+<div class="basket-banner" id="basketBanner">
+  <div class="basket-text"><strong>🧺 Monthly Basket</strong><span id="basketCount"></span></div>
+  <button class="basket-btn" onclick="addMonthlyBasket()">Add all</button>
+</div>
+<div class="basket-notice" id="basketNotice"></div>
 
 <nav class="chips" id="chips" aria-label="Categories"></nav>
 <main id="catalog"></main>
@@ -225,6 +257,8 @@
       <div class="error-msg" id="custAddrErr"></div>
       <label>Delivery slot</label>
       <div class="slot-row" id="slots"></div>
+      <label>If something's unavailable</label>
+      <div class="sub-row" id="subPref"></div>
     </div>
   </div>
   <div class="sheet-foot">
@@ -234,6 +268,7 @@
       <div class="row grand"><span>To pay on delivery</span><span id="tGrand">₹0</span></div>
       <div id="freeNote"></div>
     </div>
+    <div class="sla-note" id="slaNote"></div>
     <button class="wa-btn" onclick="sendToWhatsApp()">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="#0b3d20"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.4l.9 2.1c.1.2.1.4 0 .6l-.4.6-.5.5c-.2.2-.3.4-.1.7.2.3.9 1.5 2 2.4 1.4 1.2 2.5 1.6 2.9 1.8.3.2.5.1.7-.1l1-1.2c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.4 0 .1 0 .7-.2 1.3z"/></svg>
       Send order on WhatsApp
@@ -269,20 +304,58 @@
 const STORE = {
   name: "DailyGrocer",
   // One WhatsApp number per branch (country code, no + or spaces).
-  // Replace these placeholders with the real numbers.
+  // slug is used in the shareable link (?branch=slug) and in the stock-override sheet's branch_slug column.
   branches: [
-    { name: "Kukatpally",   phone: "919121021469" },
-    { name: "Miyapur",      phone: "919121021469" },
-    { name: "KPHB",         phone: "919121021469" },
-    { name: "Nizampet",     phone: "919121021469" },
+    { slug:"kukatpally", name: "Kukatpally",   phone: "919121021469" },
+    { slug:"miyapur",    name: "Miyapur",      phone: "919121021469" },
+    { slug:"kphb",       name: "KPHB",         phone: "919121021469" },
+    { slug:"nizampet",   name: "Nizampet",     phone: "919121021469" },
   ],
   deliveryFee: 20,          // ₹ flat fee
   freeDeliveryAbove: 499,   // ₹ threshold for free delivery
   slots: ["ASAP (1–2 hrs)", "Today evening", "Tomorrow morning"],
+
+  // Shown near the checkout button — sets the human-confirmation expectation.
+  confirmationSla: "We confirm your order on WhatsApp within 15 minutes (store hours).",
+
+  // Customer's choice for handling any item that turns out unavailable. First option is the default.
+  substitutionOptions: [
+    { value:"replace", label:"Replace with similar" },
+    { value:"call",    label:"Call me first" },
+    { value:"remove",  label:"Just remove it" },
+  ],
+
+  // One-tap preset for the core monthly staples order. { id, qty } — id must match a PRODUCTS entry.
+  monthlyBasket: [
+    { id:1,  qty:4 },  // Toned Milk
+    { id:8,  qty:1 },  // Eggs
+    { id:9,  qty:1 },  // Whole Wheat Atta
+    { id:10, qty:1 },  // Sona Masoori Rice
+    { id:12, qty:2 },  // Toor Dal
+    { id:14, qty:1 },  // Sunflower Oil
+    { id:16, qty:1 },  // Iodised Salt
+    { id:17, qty:1 },  // Sugar
+    { id:20, qty:1 },  // Tea Powder
+    { id:26, qty:2 },  // Bread
+  ],
+
+  // Published-to-web Google Sheet CSV (File > Share > Publish to web > CSV), columns: item_code, branch_slug, available (Y/N).
+  // Lets staff kill-switch fast-selling perishables between POS syncs. Leave blank to disable —
+  // the site then relies only on the baked-in PRODUCTS.inStock flag and works exactly the same otherwise.
+  stockSheetUrl: "",
+  stockSheetTimeoutMs: 3000,
+
+  // Google Apps Script (or similar) endpoint that logs each order as structured JSON. Leave blank to disable.
+  // Fire-and-forget: a slow/failing webhook must never block or delay the WhatsApp handoff.
+  webhookUrl: "",
 };
 
 /* Catalog: emoji keeps it image-free (loads instantly on any phone).
-   mrp is optional — when present the card shows a strike-through price. */
+   mrp is optional — when present the card shows a strike-through price.
+   id doubles as the POS item_code — the stock-override sheet and the order webhook both join on it,
+   so never renumber an existing product; append new ones with the next free id.
+   inStock is optional (default true) — the POS sync script will flip this daily; the stock-override
+   sheet can additionally override it per branch between syncs. */
 const PRODUCTS = [
   // Dairy — the anchor category, listed first
   { id:1,  cat:"Dairy",        emoji:"🥛", name:"Toned Milk",              pack:"500 ml pouch",  price:28 },
@@ -343,7 +416,9 @@ const PRODUCTS = [
 const cart = new Map();           // id -> qty (in-memory)
 let activeCat = "All";
 let activeSlot = 0;
+let activeSub = 0;
 let query = "";
+let stockOverrides = {};          // { branch_slug: { item_code: true|false } } — from the staff override sheet
 
 const CATS = ["All", ...new Set(PRODUCTS.map(p => p.cat))];
 const rupee = n => "₹" + n.toLocaleString("en-IN");
@@ -355,6 +430,17 @@ STORE.branches.forEach((b,i) => {
   o.value = i; o.textContent = b.name;
   branchSel.appendChild(o);
 });
+branchSel.addEventListener("change", renderCatalog);
+
+/* ---- pre-select branch from ?branch=slug (shared per-branch links / QR codes) ---- */
+const branchSlugParam = new URLSearchParams(location.search).get("branch");
+if(branchSlugParam){
+  const idx = STORE.branches.findIndex(b => b.slug === branchSlugParam.trim().toLowerCase());
+  if(idx > -1){
+    branchSel.value = idx;
+    document.getElementById("branchPick").style.display = "none";
+  }
+}
 
 /* ---- init slots ---- */
 const slotsEl = document.getElementById("slots");
@@ -367,6 +453,24 @@ STORE.slots.forEach((s,i) => {
   slotsEl.appendChild(b);
 });
 
+/* ---- init substitution preference ---- */
+const subEl = document.getElementById("subPref");
+STORE.substitutionOptions.forEach((opt,i) => {
+  const b = document.createElement("button");
+  b.className = "sub-opt" + (i===0 ? " active" : "");
+  b.textContent = opt.label;
+  b.onclick = () => { activeSub = i;
+    [...subEl.children].forEach((c,j)=>c.classList.toggle("active", j===i)); };
+  subEl.appendChild(b);
+});
+
+/* ---- init monthly basket banner ---- */
+document.getElementById("basketCount").textContent =
+  STORE.monthlyBasket.length + " everyday essentials, one tap";
+
+/* ---- init confirmation SLA note ---- */
+document.getElementById("slaNote").textContent = STORE.confirmationSla;
+
 /* ---- chips ---- */
 const chipsEl = document.getElementById("chips");
 function renderChips(){
@@ -378,6 +482,15 @@ function renderChips(){
     b.onclick = () => { activeCat = c; renderChips(); renderCatalog(); };
     chipsEl.appendChild(b);
   });
+}
+
+/* ---- stock availability (baked-in inStock, overridden per-branch by the staff sheet) ---- */
+function isAvailable(p){
+  const branch = STORE.branches[branchSel.value];
+  const branchOverrides = stockOverrides[branch.slug];
+  const key = String(p.id);
+  if(branchOverrides && Object.prototype.hasOwnProperty.call(branchOverrides, key)) return branchOverrides[key];
+  return p.inStock !== false;
 }
 
 /* ---- catalog ---- */
@@ -414,12 +527,14 @@ function renderCatalog(){
 }
 function card(p){
   const qty = cart.get(p.id) || 0;
+  const available = isAvailable(p);
   const el = document.createElement("div");
-  el.className = "card" + (qty ? " in-cart" : "");
+  el.className = "card" + (qty ? " in-cart" : "") + (available ? "" : " out-of-stock");
   el.innerHTML = `
     <div class="emoji">${p.emoji}</div>
     <div class="p-name">${p.name}</div>
     <div class="p-pack">${p.pack}</div>
+    ${available ? "" : `<div class="stock-badge">${qty ? "May be unavailable" : "Out of stock — back soon"}</div>`}
     <div class="p-row">
       <div class="p-price">${rupee(p.price)}${p.mrp ? `<small>${rupee(p.mrp)}</small>` : ""}</div>
       <div class="ctrl"></div>
@@ -430,18 +545,23 @@ function card(p){
 }
 function qtyControl(p){
   const qty = cart.get(p.id) || 0;
+  const available = isAvailable(p);
   if(!qty){
     const b = document.createElement("button");
+    if(!available){
+      b.className = "add-btn disabled"; b.textContent = "Unavailable"; b.disabled = true;
+      return b;
+    }
     b.className = "add-btn"; b.textContent = "ADD";
     b.onclick = () => setQty(p.id, 1);
     return b;
   }
   const s = document.createElement("div");
   s.className = "stepper";
-  s.innerHTML = `<button aria-label="less">−</button><span class="qty">${qty}</span><button aria-label="more">+</button>`;
+  s.innerHTML = `<button aria-label="less">−</button><span class="qty">${qty}</span><button aria-label="more"${available ? "" : " disabled"}>+</button>`;
   const [minus, plus] = s.querySelectorAll("button");
   minus.onclick = () => setQty(p.id, qty-1);
-  plus.onclick  = () => setQty(p.id, qty+1);
+  if(available) plus.onclick = () => setQty(p.id, qty+1);
   return s;
 }
 function setQty(id, q){
@@ -479,6 +599,14 @@ function renderDetail(){
   document.getElementById("dSave").style.display = p.mrp ? "" : "none";
   const act = document.getElementById("dActions");
   act.innerHTML = "";
+  const available = isAvailable(p);
+  if(!available){
+    const qty = cart.get(p.id) || 0;
+    const badge = document.createElement("div");
+    badge.className = "stock-badge"; badge.style.marginBottom = "10px";
+    badge.textContent = qty ? "May be unavailable" : "Out of stock — back soon";
+    act.appendChild(badge);
+  }
   act.appendChild(qtyControl(p));
 }
 
@@ -596,11 +724,43 @@ function buildOrderMessage(){
   lines.push("");
   lines.push("*DELIVERY DETAILS*");
   lines.push(`Slot: ${STORE.slots[activeSlot]}`);
+  lines.push(`If unavailable: ${STORE.substitutionOptions[activeSub].label}`);
   if(name) lines.push(`Name: ${name}`);
   if(addr) lines.push(`Address: ${addr}`);
   lines.push("");
   lines.push(`Thank you for ordering with ${STORE.name}!`);
   return lines.join("\n");
+}
+
+/* ---- order log webhook: fire-and-forget, never blocks/delays the WhatsApp handoff ---- */
+function postOrderWebhook(){
+  if(!STORE.webhookUrl) return;
+  const t = totals();
+  const branch = STORE.branches[branchSel.value];
+  const items = [];
+  cart.forEach((q,id) => {
+    const p = PRODUCTS.find(x=>x.id===id);
+    items.push({ item_code:String(p.id), name:p.name, qty:q, unit_price:p.price });
+  });
+  const payload = {
+    branch: branch.slug,
+    items,
+    items_total: t.items,
+    delivery: t.delivery,
+    grand_total: t.grand,
+    slot: STORE.slots[activeSlot],
+    substitution_preference: STORE.substitutionOptions[activeSub].value,
+    name: document.getElementById("custName").value.trim(),
+    address: document.getElementById("custAddr").value.trim(),
+    timestamp: new Date().toISOString(),
+  };
+  // mode:"no-cors" + text/plain avoids a CORS preflight against Apps Script endpoints;
+  // the response is opaque, which is fine since we never read it — failures are caught and ignored.
+  fetch(STORE.webhookUrl, {
+    method: "POST", mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
 }
 
 function sendToWhatsApp(){
@@ -609,6 +769,7 @@ function sendToWhatsApp(){
   if(!validateOrderFields()) return;
   const branch = STORE.branches[branchSel.value];
   const url = "https://wa.me/" + branch.phone + "?text=" + encodeURIComponent(buildOrderMessage());
+  postOrderWebhook();
   window.open(url, "_blank");
 }
 
@@ -631,10 +792,51 @@ document.getElementById("search").addEventListener("input", e => {
   renderCatalog();
 });
 
+/* ---- monthly basket: one tap adds every in-stock preset item ---- */
+function addMonthlyBasket(){
+  const skipped = [];
+  STORE.monthlyBasket.forEach(entry => {
+    const p = PRODUCTS.find(x=>x.id===entry.id);
+    if(!p) return;
+    if(!isAvailable(p)){ skipped.push(p.name); return; }
+    cart.set(p.id, entry.qty);
+  });
+  renderCatalog(); renderCartBar();
+  if(document.getElementById("sheet").classList.contains("show")) renderSheet();
+  const notice = document.getElementById("basketNotice");
+  notice.textContent = skipped.length ? `Skipped (out of stock): ${skipped.join(", ")}` : "";
+  notice.classList.toggle("show", skipped.length>0);
+}
+
+/* ---- staff stock-override sheet: non-blocking, fails open (site works identically if unset/unreachable) ---- */
+function loadStockOverrides(){
+  if(!STORE.stockSheetUrl) return;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STORE.stockSheetTimeoutMs || 3000);
+  fetch(STORE.stockSheetUrl, { signal: controller.signal })
+    .then(res => res.ok ? res.text() : "")
+    .then(text => {
+      if(!text) return;
+      const map = {};
+      text.trim().split("\n").forEach(row => {
+        const [itemCode, branchSlug, available] = row.split(",").map(c => c.trim().replace(/^"|"$/g,""));
+        if(!itemCode || !branchSlug || itemCode.toLowerCase()==="item_code") return;
+        if(!map[branchSlug]) map[branchSlug] = {};
+        map[branchSlug][itemCode] = (available||"").toUpperCase() === "Y";
+      });
+      stockOverrides = map;
+      renderCatalog();
+      if(document.getElementById("detailSheet").classList.contains("show")) renderDetail();
+    })
+    .catch(() => { /* unreachable/slow/malformed sheet — keep relying on baked-in inStock only */ })
+    .finally(() => clearTimeout(timer));
+}
+
 /* ---- boot ---- */
 renderChips();
 renderCatalog();
 renderCartBar();
+loadStockOverrides();
 </script>
 </body>
 </html>
