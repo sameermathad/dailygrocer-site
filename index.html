@@ -248,18 +248,18 @@
   </div>
   <div class="sheet-body">
     <div id="receiptItems"></div>
-    <div class="r-fields">
+    <form class="r-fields" autocomplete="on" onsubmit="return false">
       <label for="custName">Name <span class="req">*</span></label>
-      <input id="custName" placeholder="e.g. Ramesh">
+      <input id="custName" name="name" autocomplete="name" placeholder="e.g. Ramesh">
       <div class="error-msg" id="custNameErr"></div>
       <label for="custAddr">Delivery address (flat / street / landmark) <span class="req">*</span></label>
-      <textarea id="custAddr" placeholder="e.g. 302, Sri Sai Residency, near SBI ATM, Kukatpally"></textarea>
+      <textarea id="custAddr" name="street-address" autocomplete="shipping street-address" placeholder="e.g. 302, Sri Sai Residency, near SBI ATM, Kukatpally"></textarea>
       <div class="error-msg" id="custAddrErr"></div>
       <label>Delivery slot</label>
       <div class="slot-row" id="slots"></div>
       <label>If something's unavailable</label>
       <div class="sub-row" id="subPref"></div>
-    </div>
+    </form>
   </div>
   <div class="sheet-foot">
     <div class="totals">
@@ -446,6 +446,7 @@ if(branchSlugParam){
 const slotsEl = document.getElementById("slots");
 STORE.slots.forEach((s,i) => {
   const b = document.createElement("button");
+  b.type = "button";
   b.className = "slot" + (i===0 ? " active" : "");
   b.textContent = s;
   b.onclick = () => { activeSlot = i;
@@ -457,6 +458,7 @@ STORE.slots.forEach((s,i) => {
 const subEl = document.getElementById("subPref");
 STORE.substitutionOptions.forEach((opt,i) => {
   const b = document.createElement("button");
+  b.type = "button";
   b.className = "sub-opt" + (i===0 ? " active" : "");
   b.textContent = opt.label;
   b.onclick = () => { activeSub = i;
