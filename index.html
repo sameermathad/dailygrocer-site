@@ -12,7 +12,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DailyGrocer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
+<!-- non-render-blocking font load: first paint never waits on the fonts CDN (kills white flash on slow networks) -->
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet"></noscript>
 <style>
   /* ============ DESIGN TOKENS ============ */
   :root{
@@ -42,8 +44,12 @@
   .splash{position:fixed;inset:0;z-index:100;background:var(--green-deep);display:none;
     align-items:center;justify-content:center;transition:opacity .4s ease}
   /* visible from the very first paint on home-screen launches — no JS needed to show it,
-     which is what prevents a white flash between the OS splash and this one */
-  @media(display-mode:standalone){.splash{display:flex}}
+     which is what prevents a white flash between the OS splash and this one.
+     html gets the brand green too so no frame can ever fall back to white. */
+  @media(display-mode:standalone){
+    html{background:var(--green-deep)}
+    .splash{display:flex}
+  }
   .splash.on{display:flex}
   .splash.bye{opacity:0}
   .splash-lockup{display:flex;align-items:center;gap:18px}
