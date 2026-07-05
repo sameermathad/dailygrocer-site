@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DailyGrocer — Order on WhatsApp</title>
+<meta name="theme-color" content="#14532d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DailyGrocer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -704,11 +711,10 @@ function buildOrderMessage(){
 
   const divider = "------------------------------";
   let lines = [];
-  lines.push(`*${STORE.name.toUpperCase()} — ORDER RECEIPT*`);
-  lines.push(`Branch: ${branch.name}`);
-  lines.push(divider);
+  lines.push(`*Order for ${STORE.name} ${branch.name}*`);
   lines.push("");
-  lines.push("*ITEMS*");
+  lines.push("Hi! I'd like to order the following:");
+  lines.push(divider);
   let i = 1;
   cart.forEach((q,id) => {
     const p = PRODUCTS.find(x=>x.id===id);
@@ -716,21 +722,19 @@ function buildOrderMessage(){
     lines.push(`    Qty: ${q} x ${rupee(p.price)} = ${rupee(p.price*q)}`);
     i++;
   });
-  lines.push("");
   lines.push(divider);
   lines.push(`Items Total: ${rupee(t.items)}`);
   lines.push(`Delivery: ${t.delivery ? rupee(t.delivery) : "FREE"}`);
-  lines.push(`*Grand Total: ${rupee(t.grand)}*`);
-  lines.push("(Pay on Delivery)");
+  lines.push(`*Total: ${rupee(t.grand)}* — I'll pay on delivery`);
   lines.push(divider);
   lines.push("");
-  lines.push("*DELIVERY DETAILS*");
+  lines.push("*MY DELIVERY DETAILS*");
   lines.push(`Slot: ${STORE.slots[activeSlot]}`);
-  lines.push(`If unavailable: ${STORE.substitutionOptions[activeSub].label}`);
+  lines.push(`If an item is unavailable: ${STORE.substitutionOptions[activeSub].label}`);
   if(name) lines.push(`Name: ${name}`);
   if(addr) lines.push(`Address: ${addr}`);
   lines.push("");
-  lines.push(`Thank you for ordering with ${STORE.name}!`);
+  lines.push("Please confirm my order. Thanks!");
   return lines.join("\n");
 }
 
