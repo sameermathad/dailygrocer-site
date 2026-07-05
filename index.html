@@ -38,6 +38,27 @@
   button{font-family:inherit;border:none;cursor:pointer;background:none}
   input,select{font-family:inherit}
 
+  /* ============ APP SPLASH (installed/standalone launches only) ============ */
+  .splash{position:fixed;inset:0;z-index:100;background:var(--green-deep);display:none;
+    align-items:center;justify-content:center;transition:opacity .4s ease}
+  .splash.on{display:flex}
+  .splash.bye{opacity:0}
+  .splash-lockup{display:flex;align-items:center;gap:18px}
+  .splash-cart{font-size:3.2rem;line-height:1;animation:cartIn .9s cubic-bezier(.22,1.2,.36,1) both}
+  .splash-words{font-family:var(--font-display);font-weight:800;font-size:2.4rem;line-height:1.05;
+    animation:wordsIn .7s ease .35s both}
+  .splash-words .w1{color:#fff}
+  .splash-words .w2{color:var(--turmeric)}
+  @keyframes cartIn{
+    0%{transform:translateX(-90px) rotate(-8deg);opacity:0}
+    60%{transform:translateX(8px) rotate(2deg);opacity:1}
+    100%{transform:translateX(0) rotate(0)}
+  }
+  @keyframes wordsIn{
+    from{transform:translateY(14px);opacity:0}
+    to{transform:translateY(0);opacity:1}
+  }
+
   /* ============ HEADER ============ */
   header{background:var(--green-deep);color:#fff;padding:14px 16px 12px;position:sticky;top:0;z-index:40}
   .brand-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -206,6 +227,14 @@
 </style>
 </head>
 <body>
+
+<!-- app splash: shown only when launched from the home-screen icon -->
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-lockup">
+    <span class="splash-cart">🛒</span>
+    <div class="splash-words"><div class="w1">Daily</div><div class="w2">Grocer</div></div>
+  </div>
+</div>
 
 <header>
   <div class="head-inner">
@@ -837,6 +866,18 @@ function loadStockOverrides(){
     .catch(() => { /* unreachable/slow/malformed sheet — keep relying on baked-in inStock only */ })
     .finally(() => clearTimeout(timer));
 }
+
+/* ---- app splash: only when launched standalone from the home-screen icon ---- */
+(function(){
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if(!standalone) return;
+  const splash = document.getElementById("splash");
+  splash.classList.add("on");
+  setTimeout(() => {
+    splash.classList.add("bye");
+    setTimeout(() => splash.remove(), 450);
+  }, 1400);
+})();
 
 /* ---- boot ---- */
 renderChips();
