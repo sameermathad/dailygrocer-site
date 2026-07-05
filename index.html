@@ -41,6 +41,9 @@
   /* ============ APP SPLASH (installed/standalone launches only) ============ */
   .splash{position:fixed;inset:0;z-index:100;background:var(--green-deep);display:none;
     align-items:center;justify-content:center;transition:opacity .4s ease}
+  /* visible from the very first paint on home-screen launches — no JS needed to show it,
+     which is what prevents a white flash between the OS splash and this one */
+  @media(display-mode:standalone){.splash{display:flex}}
   .splash.on{display:flex}
   .splash.bye{opacity:0}
   .splash-lockup{display:flex;align-items:center;gap:18px}
@@ -867,11 +870,15 @@ function loadStockOverrides(){
     .finally(() => clearTimeout(timer));
 }
 
-/* ---- app splash: only when launched standalone from the home-screen icon ---- */
+/* ---- app splash: only when launched standalone from the home-screen icon.
+   The CSS media query above already shows it from the first paint; this script
+   only covers iOS's older navigator.standalone flag and schedules the fade-out. ---- */
 (function(){
-  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-  if(!standalone) return;
   const splash = document.getElementById("splash");
+  const standalone = window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone === true
+    || getComputedStyle(splash).display !== "none";
+  if(!standalone){ splash.remove(); return; }
   splash.classList.add("on");
   setTimeout(() => {
     splash.classList.add("bye");
