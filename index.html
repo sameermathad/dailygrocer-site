@@ -623,9 +623,31 @@ function qtyControl(p){
 }
 function setQty(id, q){
   if(q<=0) cart.delete(id); else cart.set(id, q);
+  saveCart();
   renderCatalog(); renderCartBar();
   if(document.getElementById("sheet").classList.contains("show")) renderSheet();
   if(detailId===id && document.getElementById("detailSheet").classList.contains("show")) renderDetail();
+}
+
+/* ---- cart persistence: pure enhancement so an interrupted session (tab killed while
+   in WhatsApp, accidental refresh) doesn't lose the basket. Only id -> qty is stored —
+   prices always come from the live page. Fails silently to in-memory-only if storage
+   is unavailable, per the "never rely on storage" rule. ---- */
+const CART_KEY = "dg-cart-v1";
+const CART_TTL_MS = 6 * 60 * 60 * 1000;   // stale baskets expire after 6 hours
+function saveCart(){
+  try{ localStorage.setItem(CART_KEY, JSON.stringify({ t: Date.now(), items: [...cart] })); }
+  catch(e){}
+}
+function restoreCart(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(CART_KEY));
+    if(!saved || !Array.isArray(saved.items)) return;
+    if(Date.now() - saved.t > CART_TTL_MS){ localStorage.removeItem(CART_KEY); return; }
+    saved.items.forEach(([id, q]) => {
+      if(PRODUCTS.some(p => p.id === id) && Number.isInteger(q) && q > 0 && q < 100) cart.set(id, q);
+    });
+  }catch(e){}
 }
 
 /* ---- product detail sheet ---- */
@@ -892,6 +914,7 @@ function addMonthlyBasket(){
     if(!isAvailable(p)){ skipped.push(p.name); return; }
     cart.set(p.id, entry.qty);
   });
+  saveCart();
   renderCatalog(); renderCartBar();
   if(document.getElementById("sheet").classList.contains("show")) renderSheet();
   const notice = document.getElementById("basketNotice");
@@ -940,6 +963,7 @@ function loadStockOverrides(){
 })();
 
 /* ---- boot ---- */
+restoreCart();
 renderChips();
 renderCatalog();
 renderCartBar();
