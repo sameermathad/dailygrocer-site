@@ -181,6 +181,14 @@
   .r-fields input.invalid,.r-fields textarea.invalid{border-color:#c0392b}
   .error-msg{font-size:.72rem;color:#c0392b;font-weight:600;margin-top:4px;display:none}
   .error-msg.show{display:block}
+  .loc-btn{margin-top:8px;width:100%;padding:10px;border:1.5px dashed var(--green-leaf);border-radius:9px;
+    background:#fff;color:var(--green-leaf);font-weight:700;font-size:.85rem}
+  .loc-btn:disabled{opacity:.6}
+  .loc-status{font-size:.74rem;margin-top:5px;display:none;font-weight:600}
+  .loc-status.show{display:block}
+  .loc-status.ok{color:var(--green-leaf)}
+  .loc-status.err{color:#a06b00}
+  .loc-remove{color:#c0392b;font-weight:700;font-size:.72rem;text-decoration:underline;margin-left:6px}
   .slot-row{display:flex;gap:8px}
   .slot{flex:1;padding:9px 4px;border:1.5px solid var(--line);border-radius:9px;background:#fff;
     font-size:.78rem;font-weight:600;color:var(--ink-soft);text-align:center}
@@ -300,6 +308,8 @@
       <label for="custAddr">Delivery address (flat / street / landmark) <span class="req">*</span></label>
       <textarea id="custAddr" name="street-address" autocomplete="shipping street-address" placeholder="e.g. 302, Sri Sai Residency, near SBI ATM, Alkapur"></textarea>
       <div class="error-msg" id="custAddrErr"></div>
+      <button type="button" class="loc-btn" id="locBtn" onclick="attachLocation()">📍 Use my current location</button>
+      <div class="loc-status" id="locStatus"></div>
       <label>Delivery slot</label>
       <div class="slot-row" id="slots"></div>
       <label>If something's unavailable</label>
@@ -740,6 +750,41 @@ function validateOrderFields(){
 document.getElementById("custName").addEventListener("input", function(){ setFieldError(this, document.getElementById("custNameErr"), ""); });
 document.getElementById("custAddr").addEventListener("input", function(){ setFieldError(this, document.getElementById("custAddrErr"), ""); });
 
+/* ---- optional delivery location pin (customer's choice; order works fine without it) ---- */
+let custLocation = null;   // { lat, lng, accuracy } or null
+const mapsLink = loc => `https://maps.google.com/?q=${loc.lat},${loc.lng}`;
+function attachLocation(){
+  const btn = document.getElementById("locBtn");
+  const status = document.getElementById("locStatus");
+  if(!navigator.geolocation){
+    status.textContent = "Location isn't supported on this browser — please continue with the address.";
+    status.className = "loc-status err show"; return;
+  }
+  btn.disabled = true; btn.textContent = "Locating…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    custLocation = {
+      lat: +pos.coords.latitude.toFixed(6),
+      lng: +pos.coords.longitude.toFixed(6),
+      accuracy: Math.round(pos.coords.accuracy),
+    };
+    btn.disabled = false; btn.textContent = "📍 Update my location";
+    status.innerHTML = `✓ Location attached (±${custLocation.accuracy} m) <button type="button" class="loc-remove" onclick="removeLocation()">Remove</button>`;
+    status.className = "loc-status ok show";
+  }, err => {
+    btn.disabled = false; btn.textContent = "📍 Use my current location";
+    status.textContent = err.code === 1
+      ? "Location permission denied — no problem, the address is enough."
+      : "Couldn't get your location — no problem, the address is enough.";
+    status.className = "loc-status err show";
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+}
+function removeLocation(){
+  custLocation = null;
+  document.getElementById("locBtn").textContent = "📍 Use my current location";
+  const status = document.getElementById("locStatus");
+  status.textContent = ""; status.className = "loc-status";
+}
+
 /* ---- order message (shared by WhatsApp send + copy) ---- */
 function buildOrderMessage(){
   const t = totals();
@@ -771,6 +816,7 @@ function buildOrderMessage(){
   lines.push(`If an item is unavailable: ${STORE.substitutionOptions[activeSub].label}`);
   if(name) lines.push(`Name: ${name}`);
   if(addr) lines.push(`Address: ${addr}`);
+  if(custLocation) lines.push(`Map: ${mapsLink(custLocation)}`);
   lines.push("");
   lines.push("Please confirm my order. Thanks!");
   return lines.join("\n");
@@ -796,6 +842,7 @@ function postOrderWebhook(){
     substitution_preference: STORE.substitutionOptions[activeSub].value,
     name: document.getElementById("custName").value.trim(),
     address: document.getElementById("custAddr").value.trim(),
+    location: custLocation,
     timestamp: new Date().toISOString(),
   };
   // mode:"no-cors" + text/plain avoids a CORS preflight against Apps Script endpoints;
@@ -881,7 +928,7 @@ function loadStockOverrides(){
    only covers iOS's older navigator.standalone flag and schedules the fade-out. ---- */
 (function(){
   const splash = document.getElementById("splash");
-  const standalone = window.matchMedia("(display-mode: standalone)").matches
+  const standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
     || window.navigator.standalone === true
     || getComputedStyle(splash).display !== "none";
   if(!standalone){ splash.remove(); return; }
